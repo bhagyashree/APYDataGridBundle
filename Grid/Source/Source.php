@@ -164,7 +164,7 @@ abstract class Source implements DriverInterface
      */
     public function isDataLoaded()
     {
-        return !is_null($this->data);
+        return $this->data !== null;
     }
 
     /**
