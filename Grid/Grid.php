@@ -302,6 +302,8 @@ class Grid
 
     public function isReadyForRedirect()
     {
+        $this->processLazyParameters();
+        
         if ($this->isReadyForRedirect) {
             $this->executeMassActions();
 
@@ -309,8 +311,6 @@ class Grid
                 $this->processRequestData();
             }
         } else {
-            $this->processLazyParameters();
-
             if ($this->newSession) {
                 $this->setDefaultSessionData();
             }
