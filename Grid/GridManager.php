@@ -62,6 +62,7 @@ class GridManager implements \IteratorAggregate, \Countable
 
         $checkHash = array();
 
+        $isReadyForRedirect = false;
         $this->grids->rewind();
         while($this->grids->valid()) {
             $grid = $this->grids->current();
@@ -73,13 +74,13 @@ class GridManager implements \IteratorAggregate, \Countable
             $checkHash[] = $grid->getHash();
 
             if ($grid->isReadyForRedirect()) {
-                return true;
+                $isReadyForRedirect = true;
             }
 
             $this->grids->next();
         }
 
-        return false;
+        return $isReadyForRedirect;
     }
 
     public function isReadyForExport()

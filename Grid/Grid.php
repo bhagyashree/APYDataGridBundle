@@ -173,11 +173,6 @@ class Grid
     /**
      * @var boolean
      */
-    protected $isReadyForRedirect = false;
-
-    /**
-     * @var boolean
-     */
     protected $isReadyForExport = false;
 
     /**
@@ -254,7 +249,10 @@ class Grid
         unset($this->routeParameters['_route']);
         unset($this->routeParameters['_controller']);
         unset($this->routeParameters['_route_params']);
+        unset($this->routeParameters['_template']);
         unset($this->routeParameters['_template_default_vars']);
+        unset($this->routeParameters['_template_streamable']);
+        unset($this->routeParameters['_template_vars']);
     }
 
     /**
@@ -276,16 +274,59 @@ class Grid
 
         $this->source->initialise($this->container);
 
-        //get cols from source
+        // Get columns from the source
         $this->source->getColumns($this->columns);
 
-        //generate hash
+        return $this;
+    }
+
+    public function isReadyForRedirect()
+    {
+        if($this->source === null) {
+            throw new \Exception('The source of the grid is not set.');
+        }
+
         $this->createHash();
 
         $this->requestData = (array) $this->request->get($this->hash);
 
+        $this->processPersistence();
+
+        $this->sessionData = (array) $this->session->get($this->hash);
+
+        $this->processLazyParameters();
+
+        // isReadyForRedirect ?
+        if (!empty($this->requestData)) {
+            $this->executeMassActions();
+
+            if (!$this->executeExports()) {
+                $this->processRequestData();
+
+                $this->saveSession();
+            }
+
+            return true;
+        } else {
+            if ($this->newSession) {
+                $this->setDefaultSessionData();
+
+                $this->saveSession();
+            }
+
+            //Configures the grid with the data read from the session.
+            $this->processSessionData();
+
+            $this->prepare();
+
+            return false;
+        }
+    }
+
+    protected function processPersistence()
+    {
         // Persistence or reset - kill previous session
-        if ((!$this->request->isXmlHttpRequest() && !$this->persistence && $this->request->headers->get('referer') != $this->request->getUriForPath($this->request->getPathInfo()))
+        if ((!$this->request->isXmlHttpRequest() && !$this->persistence && $this->request->headers->get('referer') != $this->request->getUri())
          || isset($this->requestData[self::REQUEST_QUERY_RESET])) {
             $this->session->remove($this->hash);
         }
@@ -293,39 +334,36 @@ class Grid
         if ($this->session->get($this->hash) === null) {
             $this->newSession = true;
         }
-
-        $this->sessionData = (array) $this->session->get($this->hash);
-
-        $this->isReadyForRedirect = !empty($this->requestData);
-
-        return $this;
     }
 
-    public function isReadyForRedirect()
+    protected function processLazyParameters()
     {
-        $this->processLazyParameters();
-        
-        if ($this->isReadyForRedirect) {
-            $this->executeMassActions();
-
-            if (!$this->executeExports()) {
-                $this->processRequestData();
-            }
-        } else {
-            if ($this->newSession) {
-                $this->setDefaultSessionData();
-            }
-
-            //Configures the grid with the data ??read from the session.
-            $this->processSessionData();
-
-            $this->prepare();
+        // Additional columns
+        foreach ($this->lazyAddColumn as $column) {
+            $this->columns->addColumn($column['column'], $column['position']);
         }
 
-        // Save the session
-        $this->session->set($this->hash, $this->sessionData);
+        // Hidden columns
+        foreach ($this->lazyHiddenColumns as $columnId) {
+            $this->columns->getColumnById($columnId)->setVisible(false);
+        }
 
-        return $this->isReadyForRedirect;
+        // Visible columns
+        if (!empty($this->lazyVisibleColumns)) {
+            $columnNames = array();
+            foreach ($this->columns as $column) {
+                $columnNames[] = $column->getId();
+            }
+
+            foreach (array_diff($columnNames, $this->lazyVisibleColumns) as $columnId) {
+                $this->columns->getColumnById($columnId)->setVisible(false);
+            }
+        }
+
+        // Hide and Show columns
+        foreach ($this->lazyHideShowColumns as $columnId => $visible) {
+            $this->columns->getColumnById($columnId)->setVisible($visible);
+        }
     }
 
     /**
@@ -381,36 +419,6 @@ class Grid
         }
     }
 
-    protected function processLazyParameters()
-    {
-        // Additional columns
-        foreach ($this->lazyAddColumn as $column) {
-            $this->columns->addColumn($column['column'], $column['position']);
-        }
-
-        // Hidden colums
-        foreach ($this->lazyHiddenColumns as $columnId) {
-            $this->columns->getColumnById($columnId)->setVisible(false);
-        }
-
-        // Visible colums
-        if (!empty($this->lazyVisibleColumns)) {
-            $columnNames = array();
-            foreach ($this->columns as $column) {
-                $columnNames[] = $column->getId();
-            }
-
-            foreach (array_diff($columnNames, $this->lazyVisibleColumns) as $columnId) {
-                $this->columns->getColumnById($columnId)->setVisible(false);
-            }
-        }
-
-        // Hide and Show colums
-        foreach ($this->lazyHideShowColumns as $columnId => $visible) {
-            $this->columns->getColumnById($columnId)->setVisible($visible);
-        }
-    }
-
     protected function setDefaultSessionData()
     {
         // Default filters
@@ -440,7 +448,7 @@ class Grid
     }
 
     /**
-     * Configures the grid with the data ??read from the session.
+     * Configures the grid with the data read from the session.
      */
     protected function processSessionData()
     {
@@ -669,6 +677,11 @@ class Grid
         }
     }
 
+    protected function saveSession()
+    {
+        $this->session->set($this->hash, $this->sessionData);
+    }
+
     protected function createHash()
     {
         $this->hash = 'grid_'. (empty($this->id) ? md5($this->request->get('_controller').$this->columns->getHash().$this->source->getHash()) : $this->getId());
@@ -708,7 +721,7 @@ class Grid
                 return $column;
             }
         }
-    
+
         return $this->columns->getColumnById($columnId);
     }
 
