@@ -2,16 +2,16 @@
     "name": "apy/datagrid-bundle",
     "type": "symfony-bundle",
     "description": "Symfony2 Datagrid Bundle",
-    "keywords": ["datagrid"],
+    "keywords": ["Symfony", "datagrid"],
     "homepage": "https://github.com/Abhoryo/APYDataGridBundle",
     "authors": [
+	    {
+            "name": "Yoann Petit",
+            "email": "abhoryo@free.fr"
+        },
         {
             "name": "Stanislav Turza",
             "email": "stanislav.turza@gmail.com"
-        },
-        {
-            "name": "Yoann Petit",
-            "email": "abhoryo@free.fr"
         },
         {
             "name": "Evan Owens",
@@ -20,12 +20,12 @@
     ],
     "require": {
         "php": ">=5.3.2",
-        "symfony/framework-bundle": "2.0.*"
+        "symfony/framework-bundle": ">=2.0.0"
     },
     "suggest": {
-        "ext-intl": "*",
-        "ext-mbstring": "*",
-        "PHPExcel": "*"
+        "ext-intl": "Translate the grid",
+        "ext-mbstring": "Convert your data with the right charset",
+        "PHPExcel": "Export the grid (Excel, HTML or PDF)"
     },
     "autoload": {
         "psr-0": { "APY\\DataGridBundle": "" }
