@@ -315,7 +315,7 @@ class Grid
                 $this->setDefaultSessionData();
             }
 
-            //Configures the grid with the data ​​read from the session.
+            //Configures the grid with the data ??read from the session.
             $this->processSessionData();
 
             $this->prepare();
@@ -439,7 +439,7 @@ class Grid
     }
 
     /**
-     * Configures the grid with the data ​​read from the session.
+     * Configures the grid with the data ??read from the session.
      */
     protected function processSessionData()
     {
@@ -702,6 +702,12 @@ class Grid
      */
     public function getColumn($columnId)
     {
+        foreach ($this->lazyAddColumn as $column) {
+            if ($column->getId() == $columnId) {
+                return $column;
+            }
+        }
+    
         return $this->columns->getColumnById($columnId);
     }
 
