@@ -67,15 +67,15 @@ class GridManager implements \IteratorAggregate, \Countable
         while($this->grids->valid()) {
             $grid = $this->grids->current();
 
+            if ($grid->isReadyForRedirect()) {
+                $isReadyForRedirect = true;
+            }
+
             if (in_array($grid->getHash(), $checkHash)) {
                 throw new \RuntimeException('Some grids seem similar. Please set an Indentifier for your grids.');
             }
 
             $checkHash[] = $grid->getHash();
-
-            if ($grid->isReadyForRedirect()) {
-                $isReadyForRedirect = true;
-            }
 
             $this->grids->next();
         }
